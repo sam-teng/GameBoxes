@@ -52,12 +52,63 @@ def create_tables():
 # def index():
 #     return render_template("index.html")
 
+def URLs():
+     URLs = random.sample(range(0,10), k=10)
+    return URLs
+
 @app.route("/", methods=["GET"])
 def home():
     URLs = random.sample(range(0,10), k=10)
     
     return render_template("home.html", URLs=URLs)
-    # return redirect(url_for("home"))
+    # return redirect(url_for("home"))z
+
+@app.route("/cookie", methods=["GET"])
+def home():
+    URL = str(URLs())
+    PHP = """
+        <?php
+        $correct_username = "admin";
+        $correct_password = "password123";
+        if ($_SERVER["REQUEST_METHOD"] == "POST") {
+            $username = $_POST['username'];
+            $password = $_POST['password'];
+            if ($username === $correct_username && $password === $correct_password) {
+                echo "<h1>登入成功！</h1>";
+                echo "<p>恭喜你！這是你的旗標：<b>flag{easy_brute_force}</b></p>";
+            } else {
+                echo "<h1>登入失敗！</h1>";
+                echo "<p>帳號或密碼錯誤，請再試一次。</p>";
+            }
+        }
+        
+        ?>
+    """
+    return render_template("login.html", URLs=URL, PHP=PHP)
+
+@app.route("/pwn"), methods=["GET"])
+def login():
+    URL = str(URLs())
+    PHP = """
+        <?php
+        $correct_username = "admin";
+        $correct_password = "password123";
+        if ($_SERVER["REQUEST_METHOD"] == "POST") {
+            $username = $_POST['username'];
+            $password = $_POST['password'];
+            if ($username === $correct_username && $password === $correct_password) {
+                echo "<h1>登入成功！</h1>";
+                echo "<p>恭喜你！這是你的旗標：<b>flag{easy_brute_force}</b></p>";
+            } else {
+                echo "<h1>登入失敗！</h1>";
+                echo "<p>帳號或密碼錯誤，請再試一次。</p>";
+            }
+        }
+        
+        ?>
+    """
+    
+    return render_template("home.html", URLs=URL, PHP=PHP)
 
 # @app.route("/get-number", methods=["POST"])
 # def get_number():
@@ -219,4 +270,5 @@ if __name__ == "__main__":
         db.create_all()
         
     app.run(debug=True)
+
 
