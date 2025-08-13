@@ -1,0 +1,18 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>後台登入</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <h1>管理員登入</h1>
+  <input type="text" id="username" placeholder="帳號">
+  <input type="password" id="password" placeholder="密碼">
+  <button onclick="adminLogin()">登入</button>
+  <p id="loginStatus"></p>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
