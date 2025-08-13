@@ -53,62 +53,96 @@ def create_tables():
 #     return render_template("index.html")
 
 def URLs():
-     URLs = random.sample(range(0,10), k=10)
+    URLs = random.sample(range(0,10), k=10)
     return URLs
+
+def random_token():
+    """生成一個隨機的 token"""
+    token = secrets.token_hex(16)
+    #sessions['username'] = token
+    return token
+
+def login_blocker(func, user_token, RETRY_LIMIT=RETRY_LIMIT):
+    #token = request.headers.get("Authorization")
+    @lru_cache(maxsize=10)
+    def counter(token, returnable=False):
+        if not returnable:
+            return -1
+        return counter(token) + 1
+        
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # token = session.get("username")
+        token = user_token
+        
+        if not sessions.get(token, False) or not token:
+            return jsonify({"error": "未授權"}), 403
+            #pass
+        retry_count = counter(token, True)
+        if retry_count > RETRY_LIMIT:
+            return jsonify({"error": "超過嘗試次數，請15分鐘後再試一次"}), 403
+        return func(user_token)
+    return wrapper
 
 @app.route("/", methods=["GET"])
 def home():
-    URLs = random.sample(range(0,10), k=10)
-    
-    return render_template("home.html", URLs=URLs)
+    # URL = str(URLs())
+    URL = random_token()+str(URLs())
+    sessions[URL] = True
+    return render_template("home.html", URLs=url_for(URL, URL=URL))
     # return redirect(url_for("home"))z
 
-@app.route("/cookie", methods=["GET"])
-def home():
-    URL = str(URLs())
-    PHP = """
-        <?php
-        $correct_username = "admin";
-        $correct_password = "password123";
-        if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $username = $_POST['username'];
-            $password = $_POST['password'];
-            if ($username === $correct_username && $password === $correct_password) {
-                echo "<h1>登入成功！</h1>";
-                echo "<p>恭喜你！這是你的旗標：<b>flag{easy_brute_force}</b></p>";
-            } else {
-                echo "<h1>登入失敗！</h1>";
-                echo "<p>帳號或密碼錯誤，請再試一次。</p>";
-            }
-        }
+@app.route("/<str:path>/cookie", methods=["GET", "POST"])
+@login_blocker(path: str, RETRY_LIMIT=RETRY_LIMIT)
+def cookie(path: str):
+    token = path.split("/")[0]
+    if sessions.get(token):
         
-        ?>
-    """
-    return render_template("login.html", URLs=URL, PHP=PHP)
+        sessions[token] = False
+        #session['username'] = oken
+        URL = random_token()+str(URLs())
+        sessions[URL] = True
+        URL = f"/{URL}/cookie"
+        return render_template("login.html", URLs=url_for(URL, URL=URL))
 
-@app.route("/pwn"), methods=["GET"])
-def login():
-    URL = str(URLs())
-    PHP = """
-        <?php
-        $correct_username = "admin";
-        $correct_password = "password123";
-        if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $username = $_POST['username'];
-            $password = $_POST['password'];
-            if ($username === $correct_username && $password === $correct_password) {
-                echo "<h1>登入成功！</h1>";
-                echo "<p>恭喜你！這是你的旗標：<b>flag{easy_brute_force}</b></p>";
-            } else {
-                echo "<h1>登入失敗！</h1>";
-                echo "<p>帳號或密碼錯誤，請再試一次。</p>";
-            }
-        }
+    else:
+        return jsonify({"success": False}), 401 
+
+@app.route("/<str:path>/pwn", methods=["GET", "POST"])
+@login_blocker(path: str, RETRY_LIMIT=RETRY_LIMIT)
+def pwn(path: str):
+    token = path.split("/")[0]
+    if sessions.get(token):
         
-        ?>
-    """
+        sessions[token] = False
+        #session['username'] = oken
+        URL = random_token()+str(URLs())
+        sessions[URL] = True
+        URL = f"/{URL}/pwn"
+        return render_template("login.html", URLs=url_for(URL, URL=URL))
+
+    else:
+        return jsonify({"success": False}), 401 
+
     
-    return render_template("home.html", URLs=URL, PHP=PHP)
+@app.route("/<str:URL>/login.php", methods=["POST"])
+@login_blocker(URL: str, RETRY_LIMIT=RETRY_LIMIT)
+def random_route(URL: str):
+    # 根據 num 做一些隨機處理
+    if request.method == "POST":
+        if URL.split("/")[-1] == "pwn" and URL:
+            data = request.get_json()
+            # username = data.get("username")
+            # password = data.get("password")
+            token = URL.split("/")[0]
+            if sessions.get(token):
+                
+                sessions[token] = False
+                #session['username'] = oken
+                return render_template("/pwn/login.php")#jsonify({"success": True, "token": token})
+            else:
+                return jsonify({"success": False}), 401 
+
 
 # @app.route("/get-number", methods=["POST"])
 # def get_number():
@@ -141,124 +175,124 @@ def login():
 #     db.session.commit()
 #     return jsonify({"number": lottery_number})
 
-def login_blocker(func):
-    #token = request.headers.get("Authorization")
-    @lru_cache(maxsize=10)
-    def counter(token, returnable=False):
-        if not returnable:
-            return -1
-        return counter(token) + 1
+# def login_blocker(func):
+#     #token = request.headers.get("Authorization")
+#     @lru_cache(maxsize=10)
+#     def counter(token, returnable=False):
+#         if not returnable:
+#             return -1
+#         return counter(token) + 1
         
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        token = session.get("username")
-        if not sessions.get(token, False) or not token:
-            return jsonify({"error": "未授權"}), 403
-            #pass
-        retry_count = counter(token, True)
-        if retry_count > RETRY_LIMIT:
-            return jsonify({"error": "超過嘗試次數，請15分鐘後再試一次"}), 403
-        return func()
-    return wrapper
+#     @wraps(func)
+#     def wrapper(*args, **kwargs):
+#         token = session.get("username")
+#         if not sessions.get(token, False) or not token:
+#             return jsonify({"error": "未授權"}), 403
+#             #pass
+#         retry_count = counter(token, True)
+#         if retry_count > RETRY_LIMIT:
+#             return jsonify({"error": "超過嘗試次數，請15分鐘後再試一次"}), 403
+#         return func()
+#     return wrapper
 
-@app.route("/admin/login", methods=["POST"])
-@login_blocker
-def admin_login():
-    data = request.get_json()
-    if data.get("username") == ADMIN_USERNAME and data.get("password") == ADMIN_PASSWORD:
-        #token = secrets.token_hex(16)
-        #token = request.headers.get("Authorization")
-        token = session.get("username")
-        sessions[token] = True
-        return jsonify({"success": True, "token": token})
-    return jsonify({"success": False}), 401
+# @app.route("/admin/login", methods=["POST"])
+# @login_blocker
+# def admin_login():
+#     data = request.get_json()
+#     if data.get("username") == ADMIN_USERNAME and data.get("password") == ADMIN_PASSWORD:
+#         #token = secrets.token_hex(16)
+#         #token = request.headers.get("Authorization")
+#         token = session.get("username")
+#         sessions[token] = True
+#         return jsonify({"success": True, "token": token})
+#     return jsonify({"success": False}), 401
 
-@app.route("/admin/data", methods=["GET"])
-def admin_data():
-    #token = request.headers.get("Authorization")
-    token = session.get("username")
-    if not (token or sessions.get(token, False)):
-        return jsonify({"error": "未授權"}), 403
-        #pass
-    players = Player.query.all()
-    return jsonify([
-        {"phone": p.phone_suffix, "number": p.lottery_number, "is_winner": p.is_winner, "prize": p.prize}
-        for p in players
-    ])
+# @app.route("/admin/data", methods=["GET"])
+# def admin_data():
+#     #token = request.headers.get("Authorization")
+#     token = session.get("username")
+#     if not (token or sessions.get(token, False)):
+#         return jsonify({"error": "未授權"}), 403
+#         #pass
+#     players = Player.query.all()
+#     return jsonify([
+#         {"phone": p.phone_suffix, "number": p.lottery_number, "is_winner": p.is_winner, "prize": p.prize}
+#         for p in players
+#     ])
 
-@app.route("/admin-login")
-def admin_login_page():
-    token = secrets.token_hex(16)
-    session['username'] = token
-    return render_template("admin-login.html")
+# @app.route("/admin-login")
+# def admin_login_page():
+#     token = secrets.token_hex(16)
+#     session['username'] = token
+#     return render_template("admin-login.html")
 
-@app.route("/admin")
-def admin():
-    token = session.get("username") #token = request.headers.get("Authorization") 
-    if not token or sessions.get(token, False):
-        return jsonify({"error": "未授權"}), 403
-        #pass
-    query_suffix = request.args.get("phone_suffix", "")
-    if query_suffix:
-        records = Player.query.filter_by(phone_suffix=query_suffix).order_by(Player.id.desc()).all()
-    else:
-        try:
-            records = Player.query.order_by(Player.id.desc()).all()
-        except:
-            records = {"id": "", "phone_suffix": "", "lottery_number": "", "prize": "", "created_at": ""}
-    return render_template("admin.html", records=records)
-    #return render_template("admin.html")
+# @app.route("/admin")
+# def admin():
+#     token = session.get("username") #token = request.headers.get("Authorization") 
+#     if not token or sessions.get(token, False):
+#         return jsonify({"error": "未授權"}), 403
+#         #pass
+#     query_suffix = request.args.get("phone_suffix", "")
+#     if query_suffix:
+#         records = Player.query.filter_by(phone_suffix=query_suffix).order_by(Player.id.desc()).all()
+#     else:
+#         try:
+#             records = Player.query.order_by(Player.id.desc()).all()
+#         except:
+#             records = {"id": "", "phone_suffix": "", "lottery_number": "", "prize": "", "created_at": ""}
+#     return render_template("admin.html", records=records)
+#     #return render_template("admin.html")
 
-@app.route("/admin/add", methods=["POST"])
-def admin_add():
-    token = session.get("username") #token = request.headers.get("Authorization") 
-    if not token or sessions.get(token, False):
-        return redirect(url_for("admin-login"))
-        #pass
+# @app.route("/admin/add", methods=["POST"])
+# def admin_add():
+#     token = session.get("username") #token = request.headers.get("Authorization") 
+#     if not token or sessions.get(token, False):
+#         return redirect(url_for("admin-login"))
+#         #pass
 
-    phone_suffix = request.form.get("phone_suffix")
-    if not phone_suffix or not phone_suffix.isdigit() or len(phone_suffix) != 3:
-        flash("請輸入正確的手機末三碼")
-        return redirect(url_for("admin"))
+#     phone_suffix = request.form.get("phone_suffix")
+#     if not phone_suffix or not phone_suffix.isdigit() or len(phone_suffix) != 3:
+#         flash("請輸入正確的手機末三碼")
+#         return redirect(url_for("admin"))
 
-    # 統計頭獎數量（不能超過 20）
-    jackpot_count = 0
-    try:
-        jackpot_count = Player.query.filter_by(prize="頭獎 🎉").count()
-    except:
-        pass
-        #jackpot_count = 0
-    # 機率抽獎邏輯
-    roll = random.random()
-    if roll < 0.01 and jackpot_count < 20:
-        prize = "頭獎 🎉"
-    elif roll < 0.41:
-        prize = f"安慰獎 #{random.randint(1, 38)}"
-    else:
-        prize = "未中獎"
+#     # 統計頭獎數量（不能超過 20）
+#     jackpot_count = 0
+#     try:
+#         jackpot_count = Player.query.filter_by(prize="頭獎 🎉").count()
+#     except:
+#         pass
+#         #jackpot_count = 0
+#     # 機率抽獎邏輯
+#     roll = random.random()
+#     if roll < 0.01 and jackpot_count < 20:
+#         prize = "頭獎 🎉"
+#     elif roll < 0.41:
+#         prize = f"安慰獎 #{random.randint(1, 38)}"
+#     else:
+#         prize = "未中獎"
 
-    # 隨機產生抽獎序號（六位數）
-    lottery_number = f"{random.randint(100000, 999999)}"
+#     # 隨機產生抽獎序號（六位數）
+#     lottery_number = f"{random.randint(100000, 999999)}"
 
-    new_record = Player(
-        phone_suffix=phone_suffix,
-        lottery_number=lottery_number,
-        prize=prize
-    )
-    #flash(Player.__table__)
-    try:
-        db.session.add(new_record)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        #flash(f"新增失敗：{str(e)}")
-        create_tables()
-        return redirect(url_for("admin"))
-    # db.session.add(new_record)
-    # db.session.commit()
-    #flash(f"已抽出：{prize}")
+#     new_record = Player(
+#         phone_suffix=phone_suffix,
+#         lottery_number=lottery_number,
+#         prize=prize
+#     )
+#     #flash(Player.__table__)
+#     try:
+#         db.session.add(new_record)
+#         db.session.commit()
+#     except Exception as e:
+#         db.session.rollback()
+#         #flash(f"新增失敗：{str(e)}")
+#         create_tables()
+#         return redirect(url_for("admin"))
+#     # db.session.add(new_record)
+#     # db.session.commit()
+#     #flash(f"已抽出：{prize}")
 
-    return redirect(url_for("admin"))
+#     return redirect(url_for("admin"))
     
 @app.route("/healthz", methods=["GET"])
 def health():
@@ -270,5 +304,6 @@ if __name__ == "__main__":
         db.create_all()
         
     app.run(debug=True)
+
 
 
