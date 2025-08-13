@@ -17,7 +17,7 @@ app.config['SECRET_KEY'] = os.urandom(16)
 # 使用 SQLite 資料庫
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')#'postgresql://nft_lottery_user:8xe9YrUS4OIBWkODLomjKWUGDZ2a50mC@dpg-d0122q24d50c73cp87q0-a/nft_lottery'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
 
 # 管理員帳密（可改為環境變數）
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')#'TYAI'
@@ -28,13 +28,13 @@ GRAND_PRIZE_PROB = 0.01
 OTHER_PRIZE_PROB = 0.40
 
 # 玩家資料表
-class Player(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    phone_suffix = db.Column(db.String(3), nullable=False)
-    lottery_number = db.Column(db.String(6), nullable=False)
-    is_winner = db.Column(db.Boolean, default=False)
-    prize = db.Column(db.String(12), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.now())
+# class Player(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     phone_suffix = db.Column(db.String(3), nullable=False)
+#     lottery_number = db.Column(db.String(6), nullable=False)
+#     is_winner = db.Column(db.Boolean, default=False)
+#     prize = db.Column(db.String(12), nullable=True)
+#     created_at = db.Column(db.DateTime, default=datetime.now())
 
 # 登入 Token 暫存（簡易版）
 sessions = {}
@@ -48,40 +48,47 @@ def create_tables():
     with app.app_context():
         db.create_all()
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+# @app.route("/")
+# def index():
+#     return render_template("index.html")
 
-@app.route("/get-number", methods=["POST"])
-def get_number():
-    data = request.get_json()
-    phone_suffix = data.get("phone", "").strip()
+@app.route("/", methods=["GET"])
+def home():
+    URLs = random.sample(range(0,10), k=10)
+    
+    return render_template("home.html", URLs=URLs)
+    # return redirect(url_for("home"))
 
-    if len(phone_suffix) != 3 or not phone_suffix.isdigit():
-        return jsonify({"error": "請輸入正確的手機末三碼"}), 400
+# @app.route("/get-number", methods=["POST"])
+# def get_number():
+#     data = request.get_json()
+#     phone_suffix = data.get("phone", "").strip()
 
-    # 查看是否已領取
-    existing = Player.query.filter_by(phone_suffix=phone_suffix).first()
-    if existing:
-        return jsonify({"number": existing.lottery_number, "prize": existing.prize})
+#     if len(phone_suffix) != 3 or not phone_suffix.isdigit():
+#         return jsonify({"error": "請輸入正確的手機末三碼"}), 400
 
-    lottery_number = f"{random.randint(100000, 999999)}"
-    grand_prize_count = Player.query.filter(Player.prize == "頭獎 🎉").count()
-    roll = random.random()
+#     # 查看是否已領取
+#     existing = Player.query.filter_by(phone_suffix=phone_suffix).first()
+#     if existing:
+#         return jsonify({"number": existing.lottery_number, "prize": existing.prize})
 
-    if roll < 0.01 and grand_prize_count < MAX_GRAND_PRIZES:
-        prize = "頭獎 🎉"
-    elif roll < 0.41:
-        prize = f"安慰獎 #{random.randint(1, 38)}"
-    else:
-        prize = "未中獎"
+#     lottery_number = f"{random.randint(100000, 999999)}"
+#     grand_prize_count = Player.query.filter(Player.prize == "頭獎 🎉").count()
+#     roll = random.random()
 
-    #lottery_number = 
+#     if roll < 0.01 and grand_prize_count < MAX_GRAND_PRIZES:
+#         prize = "頭獎 🎉"
+#     elif roll < 0.41:
+#         prize = f"安慰獎 #{random.randint(1, 38)}"
+#     else:
+#         prize = "未中獎"
+
+#     #lottery_number = 
         
-    new_player = Player(phone_suffix=phone_suffix, lottery_number=lottery_number, prize=prize)
-    db.session.add(new_player)
-    db.session.commit()
-    return jsonify({"number": lottery_number})
+#     new_player = Player(phone_suffix=phone_suffix, lottery_number=lottery_number, prize=prize)
+#     db.session.add(new_player)
+#     db.session.commit()
+#     return jsonify({"number": lottery_number})
 
 def login_blocker(func):
     #token = request.headers.get("Authorization")
@@ -212,3 +219,4 @@ if __name__ == "__main__":
         db.create_all()
         
     app.run(debug=True)
+
